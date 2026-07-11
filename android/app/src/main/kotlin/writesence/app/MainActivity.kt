@@ -1,4 +1,4 @@
-package com.writesense.writesense
+package writesence.app
 
 import io.flutter.embedding.android.FlutterActivity
 

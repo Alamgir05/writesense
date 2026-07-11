@@ -59,8 +59,8 @@ class HistoryScreen extends ConsumerWidget {
                                 ResultsScreen(session: session)),
                       ),
                       onDelete: () => ref
-                          .read(historyProvider.notifier)
-                          .delete(session.id),
+                          .read(firestoreServiceProvider)
+                          .deleteSession(session.id),
                     );
                   },
                 ),

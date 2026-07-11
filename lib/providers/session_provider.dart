@@ -1,13 +1,14 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import '../models/session.dart';
 import '../models/stroke.dart';
 import '../models/stroke_point.dart';
-import '../models/session.dart';
 import '../features/spatial_features.dart';
 import '../features/temporal_features.dart';
 import '../features/dynamic_features.dart';
 import '../features/fluency_score.dart';
-import '../services/session_repository.dart';
-import 'package:uuid/uuid.dart';
+import '../services/firestore_service.dart';
 
 // ── Drawing state ─────────────────────────────────────────────────────────
 
@@ -46,39 +47,37 @@ class DrawingNotifier extends StateNotifier<DrawingState> {
 
   void clear() => state = DrawingState.empty();
 
-  /// Run feature extraction and return a [Session]. Also persists to DB.
-  Future<Session> analyzeAndSave(SessionRepository repo) async {
+  /// Run feature extraction and return a [Session]. Also persists to Firestore.
+  Future<Session> analyzeAndSave(FirestoreService firestore) async {
     final strokes = state.completedStrokes;
-
-    // Compute feature families
-    final spatial = computeSpatialFeatures(strokes);
+    final spatial  = computeSpatialFeatures(strokes);
     final temporal = computeTemporalFeatures(strokes);
     final dynamic_ = computeDynamicFeatures(strokes);
-    final fluency = computeFluencyScores(
-      spatial: spatial,
-      temporal: temporal,
-      dynamic_: dynamic_,
-    );
-
-    // Merge all features into one map
+    final fluency  = computeFluencyScores(
+      spatial: spatial, temporal: temporal, dynamic_: dynamic_);
     final allFeatures = <String, double>{
-      ...spatial,
-      ...temporal,
-      ...dynamic_,
-      ...fluency,
+      ...spatial, ...temporal, ...dynamic_, ...fluency,
     };
-
     final index = fluency['irregularity_index'] ?? 0.0;
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
     final session = Session(
-      id: const Uuid().v4(),
-      timestamp: DateTime.now(),
-      strokes: strokes,
-      features: allFeatures,
+      id:               const Uuid().v4(),
+      userId:           uid,
+      timestamp:        DateTime.now(),
+      source:           SessionSource.tablet,
+      strokes:          strokes,
+      features:         allFeatures,
       irregularityIndex: index,
-      classification: classify(index),
+      classification:   classify(index),
     );
-
-    await repo.insertSession(session);
+    await firestore.saveSession(session).timeout(
+      const Duration(seconds: 2),
+      onTimeout: () {
+        // If it takes more than 2 seconds (e.g. offline/poor connection),
+        // let the UI proceed. Firestore will automatically sync it in the background.
+        print("Firestore save timed out. Syncing in background.");
+      },
+    );
     return session;
   }
 }
@@ -119,11 +118,7 @@ class ActiveStroke {
       ActiveStroke(points: points ?? this.points, penDownTime: penDownTime);
 }
 
-// ── Providers ─────────────────────────────────────────────────────────────
-
-final sessionRepositoryProvider = Provider<SessionRepository>(
-  (ref) => SessionRepository(),
-);
+final firestoreProvider = Provider<FirestoreService>((ref) => FirestoreService());
 
 final drawingProvider =
     StateNotifierProvider<DrawingNotifier, DrawingState>(

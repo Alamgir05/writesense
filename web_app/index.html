@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WriteSense — Tablet Capture</title>
+  <meta name="description" content="Handwriting irregularity detection via pressure-sensitive tablet capture" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✍</text></svg>" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Navigation bar ──────────────────────────────────────────────────── -->
+  <nav id="navbar">
+    <div class="logo">WriteSense</div>
+    <div id="user-info" class="hidden">
+      <span id="user-email"></span>
+      <button id="btn-signout">Sign out</button>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         VIEW: LOGIN
+    ══════════════════════════════════════════════════════════════════════ -->
+    <div id="view-login" class="view active">
+      <div class="auth-card">
+        <h2>Sign in to WriteSense</h2>
+        <p>Tablet capture · Handwriting analysis · Firebase sync</p>
+        <div id="auth-error" class="auth-error hidden"></div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button id="btn-signin" class="btn btn-primary">Sign In</button>
+        <button id="btn-signup" class="btn btn-secondary">Create Account</button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         VIEW: DRAW
+    ══════════════════════════════════════════════════════════════════════ -->
+    <div id="view-draw" class="view">
+
+      <!-- Header -->
+      <div class="draw-header">
+        <div>
+          <h2>✍ Handwriting Capture</h2>
+          <p style="color:var(--text2);font-size:13px;margin-top:4px">
+            Write naturally using your Huion tablet pen
+          </p>
+        </div>
+        <div class="draw-controls">
+          <button id="btn-clear" class="btn-sm btn-clear">🗑 Clear</button>
+          <button id="btn-analyze" class="btn-sm btn-analyze" disabled>📊 Analyze</button>
+        </div>
+      </div>
+
+      <!-- Pressure warning (shown if pressure looks flat) -->
+      <div id="pressure-warning" class="hidden">
+        ⚠️ <span>Pressure data looks flat (all values ≈ 1.0). Install the Huion
+        driver and enable <strong>Windows Ink</strong> in Huion settings for real
+        pressure sensitivity.</span>
+      </div>
+
+      <!-- Canvas -->
+      <div class="canvas-wrapper">
+        <canvas id="drawing-canvas"></canvas>
+      </div>
+
+      <!-- Live stats -->
+      <div class="stats-strip">
+        <div class="stat">
+          <span class="stat-value" id="stat-strokes">0</span>
+          <span class="stat-label">Strokes</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-points">0</span>
+          <span class="stat-label">Points</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-duration">0s</span>
+          <span class="stat-label">Duration</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-pressure">—</span>
+          <span class="stat-label">Avg Pressure</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         VIEW: RESULTS
+    ══════════════════════════════════════════════════════════════════════ -->
+    <div id="view-results" class="view">
+
+      <!-- Score hero -->
+      <div class="score-hero">
+        <div class="score-circle" id="score-circle">
+          <span class="score-number" id="score-number">—</span>
+          <span class="score-label">index</span>
+        </div>
+        <div class="classification-badge" id="classification-badge">—</div>
+        <div class="score-meta">
+          Source: <strong>🖊 Tablet</strong> &nbsp;·&nbsp;
+          <span id="result-timestamp"></span>
+          &nbsp;·&nbsp;
+          <span id="result-pressure-note"></span>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="result-actions">
+        <button id="btn-new-session" class="btn-result primary">✍ New Session</button>
+        <button id="btn-save-status" class="btn-result" disabled>
+          <span id="save-status-text">💾 Saving…</span>
+        </button>
+      </div>
+
+      <!-- Feature breakdown -->
+      <div id="feature-breakdown"></div>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Spinner overlay ──────────────────────────────────────────────────── -->
+<div id="spinner" class="spinner-overlay hidden">
+  <div class="spinner"></div>
+  <div class="spinner-text" id="spinner-text">Analyzing…</div>
+</div>
+
+<!-- ── Toast ────────────────────────────────────────────────────────────── -->
+<div id="toast" class="hidden"></div>
+
+<!-- ── Firebase SDK (CDN, ES module) ───────────────────────────────────── -->
+<script type="module" src="app.js"></script>
+</body>
+</html>

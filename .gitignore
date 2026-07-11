@@ -58,3 +58,4 @@ app.*.map.json
 # Environment / secrets
 .env
 *.env
+\n# Web app Firebase config (contains API keys — never commit)\nweb_app/firebase-config.js

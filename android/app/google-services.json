@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "965759605050",
+    "project_id": "writesense-2",
+    "storage_bucket": "writesense-2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:965759605050:android:5f8a3d9a032528cce8d803",
+        "android_client_info": {
+          "package_name": "writesence.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATz05whDzDjWAh6X-0kaiz2ta_wqBvfLg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

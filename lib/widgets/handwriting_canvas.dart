@@ -123,24 +123,11 @@ class _StrokePainter extends CustomPainter {
         ..color = strokeColor.withValues(alpha: opacity)
         ..strokeWidth = width;
 
-      if (i < points.length - 1) {
-        // Smooth cubic bezier through midpoints for natural feel
-        final mid = Offset(
-          (points[i].x + points[i - 1].x) / 2,
-          (points[i].y + points[i - 1].y) / 2,
-        );
-        canvas.drawLine(
-          Offset(points[i - 1].x, points[i - 1].y),
-          mid,
-          _paint,
-        );
-      } else {
-        canvas.drawLine(
-          Offset(points[i - 1].x, points[i - 1].y),
-          Offset(points[i].x, points[i].y),
-          _paint,
-        );
-      }
+      canvas.drawLine(
+        Offset(points[i - 1].x, points[i - 1].y),
+        Offset(points[i].x, points[i].y),
+        _paint,
+      );
     }
   }
 

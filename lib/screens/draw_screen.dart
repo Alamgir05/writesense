@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/session_provider.dart';
-import '../providers/history_provider.dart';
 import '../widgets/handwriting_canvas.dart';
 import 'results_screen.dart';
 
@@ -12,8 +11,8 @@ class DrawScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final drawState = ref.watch(drawingProvider);
-    final notifier = ref.read(drawingProvider.notifier);
-    final repo = ref.read(sessionRepositoryProvider);
+    final notifier  = ref.read(drawingProvider.notifier);
+    final firestore = ref.read(firestoreProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F4FF),
@@ -104,9 +103,8 @@ class DrawScreen extends ConsumerWidget {
                         _showLoadingDialog(context);
                         try {
                           final session =
-                              await notifier.analyzeAndSave(repo);
-                          // Refresh history
-                          ref.read(historyProvider.notifier).load();
+                              await notifier.analyzeAndSave(firestore);
+                          // Stream auto-refreshes historyProvider
                           notifier.clear();
                           if (context.mounted) {
                             Navigator.pop(context); // dismiss loading
