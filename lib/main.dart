@@ -23,20 +23,26 @@ class WriteSenseApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C63FF),
-          brightness: Brightness.dark,
-          surface: const Color(0xFF1A1740),
-          surfaceTint: Colors.transparent,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFFAFAF8),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF1A3C5E),
+          onPrimary: Colors.white,
+          secondary: Color(0xFF1A3C5E),
+          surface: Colors.white,
+          onSurface: Color(0xFF1C1C1E),
+          outline: Color(0xFFE2E2DE),
         ),
         textTheme: GoogleFonts.interTextTheme(
-            ThemeData(brightness: Brightness.dark).textTheme),
+            ThemeData(brightness: Brightness.light).textTheme),
         cardTheme: CardThemeData(
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          color: const Color(0xFF24243E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: Color(0xFFE2E2DE), width: 1),
+          ),
+          color: Colors.white,
         ),
-        scaffoldBackgroundColor: const Color(0xFF0F0C29),
       ),
       // Auth gate: show LoginScreen until Firebase confirms the user is signed in
       home: ref.watch(authStateProvider).when(
@@ -55,14 +61,14 @@ class _SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Color(0xFF0F0C29),
+      backgroundColor: Color(0xFFFAFAF8),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('✍', style: TextStyle(fontSize: 60)),
             SizedBox(height: 16),
-            CircularProgressIndicator(color: Color(0xFF6C63FF)),
+            CircularProgressIndicator(color: Color(0xFF1A3C5E)),
           ],
         ),
       ),

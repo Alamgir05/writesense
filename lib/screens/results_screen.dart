@@ -5,6 +5,7 @@ import '../models/session.dart';
 import '../services/pdf_report_service.dart';
 import '../services/csv_export_service.dart';
 import '../widgets/feature_card.dart';
+import '../widgets/pressable_scale.dart';
 
 class ResultsScreen extends StatelessWidget {
   final Session session;
@@ -13,6 +14,10 @@ class ResultsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (session.isImage) {
+      return _buildImageResults(context);
+    }
+
     final idx = session.irregularityIndex;
     final scoreColor = _scoreColor(idx);
     final spatialFeats = _filter(session.features, _spatialKeys);
@@ -21,28 +26,31 @@ class ResultsScreen extends StatelessWidget {
     final fluencyFeats = _filter(session.features, _fluencyKeys);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F4FF),
+      backgroundColor: const Color(0xFFFAFAF8),
       body: CustomScrollView(
         slivers: [
           // ── Hero app bar ─────────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
-            backgroundColor: const Color(0xFF302B63),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white),
-              onPressed: () => Navigator.pop(context),
+            backgroundColor: const Color(0xFF1A1A18),
+            leading: Center(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white, size: 16),
+                ),
+              ),
             ),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF0F0C29), Color(0xFF302B63)],
-                  ),
-                ),
+                color: const Color(0xFF1A1A18),
                 child: SafeArea(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -57,12 +65,12 @@ class ResultsScreen extends StatelessWidget {
                             horizontal: 20, vertical: 8),
                         decoration: BoxDecoration(
                           color: scoreColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: scoreColor, width: 1.5),
                         ),
                         child: Text(
                           session.classification,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.fraunces(
                             color: scoreColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -74,7 +82,7 @@ class ResultsScreen extends StatelessWidget {
                         DateFormat('dd MMM yyyy • HH:mm')
                             .format(session.timestamp),
                         style: GoogleFonts.inter(
-                            color: Colors.white38, fontSize: 12),
+                            color: Colors.white54, fontSize: 12),
                       ),
                     ],
                   ),
@@ -177,30 +185,224 @@ class ResultsScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: Text('Feature Breakdown',
-                    style: GoogleFonts.inter(
-                        fontSize: 18,
+                    style: GoogleFonts.fraunces(
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF302B63))),
+                        color: const Color(0xFF1A1A18))),
               ),
               FeatureCard(
                 title: 'Spatial Features',
                 features: spatialFeats,
-                accentColor: const Color(0xFF6C63FF),
+                accentColor: const Color(0xFF1A3C5E),
               ),
               FeatureCard(
                 title: 'Temporal Features',
                 features: temporalFeats,
-                accentColor: const Color(0xFF11998E),
+                accentColor: const Color(0xFF1A3C5E),
               ),
               FeatureCard(
                 title: 'Dynamic Features',
                 features: dynamicFeats,
-                accentColor: const Color(0xFFED8936),
+                accentColor: const Color(0xFF1A3C5E),
               ),
               FeatureCard(
                 title: 'Fluency Scores',
                 features: fluencyFeats,
                 accentColor: scoreColor,
+              ),
+              const SizedBox(height: 32),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageResults(BuildContext context) {
+    final idx = session.irregularityIndex;
+    final scoreColor = _scoreColor(idx);
+    final spatialFeats = _filter(session.features, _imageSpatialKeys);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAFAF8),
+      body: CustomScrollView(
+        slivers: [
+          // ── Hero app bar ─────────────────────────────────────────────
+          SliverAppBar(
+            expandedHeight: 260,
+            pinned: true,
+            backgroundColor: const Color(0xFF1A1A18),
+          leading: Center(
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white, size: 16),
+              ),
+            ),
+          ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                color: const Color(0xFF1A1A18),
+                child: SafeArea(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 40),
+                      // Score gauge
+                      _ScoreGauge(index: idx, color: scoreColor, isImage: true),
+                      const SizedBox(height: 12),
+                      // Classification badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: scoreColor.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: scoreColor, width: 1.5),
+                        ),
+                        child: Text(
+                          session.classification,
+                          style: GoogleFonts.fraunces(
+                            color: scoreColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        DateFormat('dd MMM yyyy • HH:mm')
+                            .format(session.timestamp),
+                        style: GoogleFonts.inter(
+                            color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Info banner explaining image limitations ────────────────────
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFFE2E2DE),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded,
+                      color: Color(0xFF1A3C5E), size: 24),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Static photos lack temporal data. Velocity, acceleration, pauses, and tempo are physically unrecoverable and excluded from this analysis.',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF5C5C5A),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Export buttons (only PDF and CSV features) ───────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _ExportButton(
+                      icon: Icons.picture_as_pdf_rounded,
+                      label: 'Export PDF',
+                      color: const Color(0xFFE53E3E),
+                      onTap: () async {
+                        try {
+                          await PdfReportService().exportPdf(session);
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('PDF error: $e')));
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _ExportButton(
+                      icon: Icons.table_chart_rounded,
+                      label: 'Export CSV',
+                      color: const Color(0xFF38A169),
+                      onTap: () async {
+                        try {
+                          await CsvExportService()
+                              .exportFeaturesCSV(session);
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('CSV error: $e')));
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Session info strip ────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  const _InfoChip(
+                      label: 'Source',
+                      value: 'Image Upload'),
+                  _InfoChip(
+                      label: 'Features',
+                      value: session.features.length.toString()),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Feature breakdown ─────────────────────────────────────────
+          SliverList(
+            delegate: SliverChildListDelegate([
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Text('Feature Breakdown',
+                    style: GoogleFonts.fraunces(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1A1A18))),
+              ),
+              FeatureCard(
+                title: 'Spatial & Structural Features',
+                features: spatialFeats,
+                accentColor: const Color(0xFF1A3C5E),
               ),
               const SizedBox(height: 32),
             ]),
@@ -225,37 +427,36 @@ class ResultsScreen extends StatelessWidget {
 class _ScoreGauge extends StatelessWidget {
   final double index;
   final Color color;
+  final bool isImage;
 
-  const _ScoreGauge({required this.index, required this.color});
+  const _ScoreGauge({
+    required this.index,
+    required this.color,
+    this.isImage = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 100,
-          height: 100,
-          child: CircularProgressIndicator(
-            value: index,
-            strokeWidth: 10,
-            backgroundColor: Colors.white12,
-            valueColor: AlwaysStoppedAnimation<Color>(color),
+        Text(
+          (index * 100).toStringAsFixed(0),
+          style: GoogleFonts.fraunces(
+            color: Colors.white,
+            fontSize: 72,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
           ),
         ),
-        Column(
-          children: [
-            Text(
-              '${(index * 100).toStringAsFixed(0)}%',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text('index',
-                style: GoogleFonts.inter(color: Colors.white38, fontSize: 10)),
-          ],
+        Text(
+          isImage ? 'Static Handwriting Score' : 'Kinematic Irregularity Index',
+          style: GoogleFonts.inter(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+          ),
         ),
       ],
     );
@@ -279,14 +480,14 @@ class _ExportButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return PressableScale(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [
@@ -315,13 +516,13 @@ class _InfoChip extends StatelessWidget {
     return Column(
       children: [
         Text(value,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.fraunces(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF302B63))),
+                color: const Color(0xFF1A1A18))),
         Text(label,
             style:
-                GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600)),
+                GoogleFonts.inter(fontSize: 11, color: const Color(0xFF8C8C8A))),
       ],
     );
   }
@@ -342,3 +543,16 @@ const _dynamicKeys = [
   'direction_changes', 'tremor_frequency', 'tremor_amplitude',
 ];
 const _fluencyKeys = ['irregularity_index', 'fluency_score', 'consistency_score'];
+
+const _imageSpatialKeys = [
+  'average_stroke_width',
+  'stroke_width_variance',
+  'ink_density',
+  'average_slant_angle',
+  'slant_angle_variance',
+  'line_spacing',
+  'line_spacing_variance',
+  'word_spacing',
+  'word_spacing_variance',
+  'baseline_deviation',
+];

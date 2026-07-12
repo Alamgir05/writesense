@@ -6,7 +6,31 @@ import 'package:intl/intl.dart';
 import '../models/session.dart';
 import '../providers/history_provider.dart';
 import '../widgets/session_tile.dart';
+import '../widgets/styled_progress_indicator.dart';
 import 'results_screen.dart';
+
+Route _createFadeSlideRoute(Widget screen) {
+  return PageRouteBuilder(
+    pageBuilder: (context, animation, secondaryAnimation) => screen,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(0.05, 0.0);
+      const end = Offset.zero;
+      const curve = Curves.easeOutCubic;
+
+      final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      final offsetAnimation = animation.drive(tween);
+      final fadeAnimation = animation.drive(Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: curve)));
+
+      return SlideTransition(
+        position: offsetAnimation,
+        child: FadeTransition(
+          opacity: fadeAnimation,
+          child: child,
+        ),
+      );
+    },
+  );
+}
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -16,58 +40,91 @@ class HistoryScreen extends ConsumerWidget {
     final historyAsync = ref.watch(historyProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F4FF),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Color(0xFF302B63)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text('Session History',
-            style: GoogleFonts.inter(
-                color: const Color(0xFF302B63),
-                fontWeight: FontWeight.bold)),
-      ),
-      body: historyAsync.when(
-        loading: () => const Center(
-            child: CircularProgressIndicator(color: Color(0xFF6C63FF))),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (sessions) {
-          if (sessions.isEmpty) {
-            return _EmptyState();
-          }
-          return Column(
-            children: [
-              // ── Trend chart ─────────────────────────────────────────
-              if (sessions.length >= 2)
-                _TrendChart(sessions: sessions),
-              // ── Session list ─────────────────────────────────────────
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(top: 8, bottom: 24),
-                  itemCount: sessions.length,
-                  itemBuilder: (context, i) {
-                    final session = sessions[i];
-                    return SessionTile(
-                      session: session,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                ResultsScreen(session: session)),
+      backgroundColor: const Color(0xFFFAFAF8),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Custom AppBar-less Header ──────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A3C5E).withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
                       ),
-                      onDelete: () => ref
-                          .read(firestoreServiceProvider)
-                          .deleteSession(session.id),
-                    );
-                  },
-                ),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Color(0xFF1A3C5E), size: 16),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Session History',
+                    style: GoogleFonts.fraunces(
+                      color: const Color(0xFF1A1A18),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          );
-        },
+            ),
+
+            Expanded(
+              child: historyAsync.when(
+                loading: () => const Center(child: StyledProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
+                data: (sessions) {
+                  if (sessions.isEmpty) {
+                    return _EmptyState();
+                  }
+                  return Column(
+                    children: [
+                      // ── Trend chart ─────────────────────────────────────────
+                      if (sessions.length >= 2)
+                        _TrendChart(sessions: sessions),
+                      // ── Session list ─────────────────────────────────────────
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.only(top: 8, bottom: 24),
+                          itemCount: sessions.length,
+                          itemBuilder: (context, i) {
+                            final session = sessions[i];
+                            return TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0.0, end: 1.0),
+                              duration: Duration(milliseconds: 300 + (i * 40).clamp(0, 300)),
+                              curve: Curves.easeOutCubic,
+                              builder: (context, val, child) {
+                                return Transform.translate(
+                                  offset: Offset(0, 16 * (1.0 - val)),
+                                  child: Opacity(opacity: val, child: child),
+                                );
+                              },
+                              child: SessionTile(
+                                session: session,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  _createFadeSlideRoute(ResultsScreen(session: session)),
+                                ),
+                                onDelete: () => ref
+                                    .read(firestoreServiceProvider)
+                                    .deleteSession(session.id),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -96,23 +153,17 @@ class _TrendChart extends StatelessWidget {
       height: 200,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE2E2DE), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Irregularity Trend',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.fraunces(
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: const Color(0xFF302B63))),
+                  fontSize: 16,
+                  color: const Color(0xFF1A1A18))),
           const SizedBox(height: 8),
           Expanded(
             child: LineChart(
@@ -166,7 +217,7 @@ class _TrendChart extends StatelessWidget {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
-                    color: const Color(0xFF6C63FF),
+                    color: const Color(0xFF1A3C5E),
                     barWidth: 2.5,
                     dotData: FlDotData(
                       show: true,
@@ -184,8 +235,8 @@ class _TrendChart extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                          const Color(0xFF6C63FF).withValues(alpha: 0.0),
+                          const Color(0xFF1A3C5E).withValues(alpha: 0.2),
+                          const Color(0xFF1A3C5E).withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -232,17 +283,17 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.history_rounded, size: 72, color: Colors.grey.shade300),
+          const Icon(Icons.history_outlined, size: 64, color: Color(0xFF8C8C8A)),
           const SizedBox(height: 16),
           Text('No sessions yet',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.fraunces(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade500)),
+                  color: const Color(0xFF1A1A18))),
           const SizedBox(height: 8),
           Text('Complete a handwriting test to see history here',
               style: GoogleFonts.inter(
-                  fontSize: 13, color: Colors.grey.shade400)),
+                  fontSize: 13, color: const Color(0xFF8C8C8A))),
         ],
       ),
     );

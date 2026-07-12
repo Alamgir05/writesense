@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// A card displaying a group of features (spatial / temporal / dynamic).
 class FeatureCard extends StatelessWidget {
@@ -17,25 +18,24 @@ class FeatureCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFFE2E2DE), width: 1),
+      ),
       elevation: 0,
       color: Theme.of(context).colorScheme.surface,
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: CircleAvatar(
-          backgroundColor: accentColor.withValues(alpha: 0.15),
-          radius: 20,
-          child: Icon(_iconForTitle(title), color: accentColor, size: 18),
-        ),
+        leading: Icon(_iconForTitle(title), color: accentColor, size: 22),
         title: Text(
           title,
-          style: TextStyle(
-              fontWeight: FontWeight.bold, color: accentColor, fontSize: 15),
+          style: GoogleFonts.fraunces(
+              fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18), fontSize: 16),
         ),
         subtitle: Text(
           '${features.length} features',
-          style: TextStyle(
-              fontSize: 12, color: Theme.of(context).colorScheme.outline),
+          style: GoogleFonts.inter(
+              fontSize: 12, color: const Color(0xFF8C8C8A)),
         ),
         initiallyExpanded: true,
         children: features.entries.map((e) => _featureRow(context, e)).toList(),

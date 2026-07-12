@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/session.dart';
 
@@ -29,38 +30,60 @@ class SessionTile extends StatelessWidget {
         padding: const EdgeInsets.only(right: 24),
         decoration: BoxDecoration(
           color: Colors.red.shade400,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
       ),
       onDismissed: (_) => onDelete(),
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 0,
-        color: Theme.of(context).colorScheme.surface,
-        child: ListTile(
-          onTap: onTap,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          leading: _ScoreBadge(score: idx, color: color),
-          title: Text(
-            session.classification,
-            style: TextStyle(
-                fontWeight: FontWeight.bold, color: color, fontSize: 15),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFFE2E2DE),
+            width: 1,
           ),
-          subtitle: Text(dateFmt.format(session.timestamp),
-              style: const TextStyle(fontSize: 12)),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('${session.strokeCount} strokes',
-                  style: const TextStyle(fontSize: 11)),
-              const SizedBox(height: 2),
-              Text('${session.totalPoints} pts',
-                  style: const TextStyle(fontSize: 11)),
-            ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: ListTile(
+            onTap: onTap,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: _ScoreBadge(score: idx, color: color),
+            title: Text(
+              session.classification,
+              style: GoogleFonts.fraunces(
+                  fontWeight: FontWeight.bold, color: color, fontSize: 16),
+            ),
+            subtitle: Row(
+              children: [
+                Icon(
+                  session.isImage ? Icons.image_outlined : Icons.gesture_rounded,
+                  size: 14,
+                  color: const Color(0xFF8C8C8A),
+                ),
+                const SizedBox(width: 6),
+                Text(dateFmt.format(session.timestamp),
+                    style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF5C5C5A))),
+              ],
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  session.isImage ? 'Static Photo' : '${session.strokeCount} strokes',
+                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF1A1A18)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  session.isImage ? '10 features' : '${session.totalPoints} pts',
+                  style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF8C8C8A)),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -86,15 +109,15 @@ class _ScoreBadge extends StatelessWidget {
       width: 52,
       height: 52,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(8),
         color: color.withValues(alpha: 0.12),
-        border: Border.all(color: color, width: 2),
+        border: Border.all(color: color, width: 1),
       ),
       child: Center(
         child: Text(
           '${(score * 100).round()}%',
-          style: TextStyle(
-            fontSize: 11,
+          style: GoogleFonts.fraunces(
+            fontSize: 14,
             fontWeight: FontWeight.bold,
             color: color,
           ),

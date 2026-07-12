@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
+import '../widgets/pressable_scale.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -47,55 +48,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0F0C29), Color(0xFF302B63), Color(0xFF24243E)],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Logo
-                    const Text('✍', style: TextStyle(fontSize: 56)),
-                    const SizedBox(height: 12),
-                    Text('WriteSense',
-                        style: GoogleFonts.inter(
-                            fontSize: 32, fontWeight: FontWeight.w800,
-                            foreground: Paint()..shader = const LinearGradient(
-                              colors: [Color(0xFF6C63FF), Color(0xFF38EF7D)],
-                            ).createShader(const Rect.fromLTWH(0, 0, 200, 40)))),
-                    const SizedBox(height: 6),
-                    Text('Handwriting Irregularity Detection',
-                        style: GoogleFonts.inter(
-                            color: Colors.white54, fontSize: 13)),
+      backgroundColor: const Color(0xFFFAFAF8),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Logo
+                  const Icon(Icons.gesture_rounded, size: 56, color: Color(0xFF1A3C5E)),
+                  const SizedBox(height: 12),
+                  Text('WriteSense',
+                      style: GoogleFonts.fraunces(
+                          fontSize: 36, fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1A1A18))),
+                  const SizedBox(height: 6),
+                  Text('Handwriting Irregularity Detection',
+                      style: GoogleFonts.inter(
+                          color: const Color(0xFF8C8C8A), fontSize: 14)),
                     const SizedBox(height: 40),
 
                     // Card
                     Container(
                       padding: const EdgeInsets.all(28),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF24243E),
-                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: const Color(0xFF6C63FF).withValues(alpha: 0.3)),
+                            color: const Color(0xFFE2E2DE), width: 1),
                       ),
                       child: Form(
                         key: _formKey,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text('Sign In', style: GoogleFonts.inter(
+                            Text('Sign In', style: GoogleFonts.fraunces(
                                 fontSize: 22, fontWeight: FontWeight.bold,
-                                color: Colors.white)),
+                                color: const Color(0xFF1A1A18))),
                             const SizedBox(height: 20),
 
                             // Error
@@ -103,12 +95,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withValues(alpha: 0.15),
+                                  color: Colors.red.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
+                                  border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
                                 ),
                                 child: Text(_error!,
-                                    style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                                    style: TextStyle(color: Colors.red.shade800, fontSize: 13)),
                               ),
                               const SizedBox(height: 16),
                             ],
@@ -134,33 +126,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   (v == null || v.length < 6) ? 'Min 6 characters' : null,
                               suffix: IconButton(
                                 icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility,
-                                    color: Colors.white38, size: 20),
+                                    color: const Color(0xFF8C8C8A), size: 20),
                                 onPressed: () => setState(() => _obscure = !_obscure),
                               ),
                             ),
                             const SizedBox(height: 24),
 
                             // Sign In button
-                            _Button(
-                              label: _loading ? 'Signing in…' : 'Sign In',
-                              onPressed: _loading ? null : () => _submit(false),
-                              loading: _loading,
+                            PressableScale(
+                              onTap: _loading ? null : () => _submit(false),
+                              child: _Button(
+                                label: _loading ? 'Signing in…' : 'Sign In',
+                                onPressed: _loading ? null : () => _submit(false),
+                                loading: _loading,
+                              ),
                             ),
                             const SizedBox(height: 10),
 
                             // Sign Up button
-                            OutlinedButton(
-                              onPressed: _loading ? null : () => _submit(true),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFF6C63FF)),
+                            PressableScale(
+                              onTap: _loading ? null : () => _submit(true),
+                              child: Container(
+                                width: double.infinity,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: Text('Create Account',
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFF1A3C5E)),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'Create Account',
                                   style: GoogleFonts.inter(
-                                      color: const Color(0xFF6C63FF),
-                                      fontWeight: FontWeight.w600)),
+                                    color: const Color(0xFF1A3C5E),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -172,8 +173,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -204,27 +204,26 @@ class _Field extends StatelessWidget {
       keyboardType: keyboardType,
       obscureText: obscureText,
       validator: validator,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Color(0xFF1A1A18)),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white24),
-        labelStyle: const TextStyle(color: Colors.white54),
+        hintStyle: const TextStyle(color: Color(0xFF8C8C8A)),
+        labelStyle: const TextStyle(color: Color(0xFF5C5C5A)),
         suffixIcon: suffix,
         filled: true,
-        fillColor: const Color(0xFF1A1740),
+        fillColor: const Color(0xFFFAFAF8),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 0.5),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE2E2DE), width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-              color: const Color(0xFF6C63FF).withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE2E2DE), width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 1.5),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF1A3C5E), width: 1.5),
         ),
         errorStyle: const TextStyle(color: Colors.redAccent),
       ),
@@ -245,8 +244,8 @@ class _Button extends StatelessWidget {
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: const Color(0xFF6C63FF),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: const Color(0xFF1A3C5E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         elevation: 0,
       ),
       child: loading
@@ -256,7 +255,7 @@ class _Button extends StatelessWidget {
                   color: Colors.white, strokeWidth: 2))
           : Text(label,
               style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
+                  fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
     );
   }
 }
