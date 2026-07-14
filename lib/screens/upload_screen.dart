@@ -112,9 +112,11 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         source: SessionSource.image,
         features: result.features,
         irregularityIndex: result.staticHandwritingScore,
-        classification: classify(result.staticHandwritingScore),
+        classification: result.isLowConfidence ? 'Unreliable' : classify(result.staticHandwritingScore),
         strokes: const [],
         imageUrl: imageUrl,
+        isLowConfidence: result.isLowConfidence,
+        confidenceMessage: result.confidenceMessage,
       );
 
       // Save to local SQLite (as backup)

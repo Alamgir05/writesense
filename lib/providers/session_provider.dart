@@ -54,7 +54,11 @@ class DrawingNotifier extends StateNotifier<DrawingState> {
     final temporal = computeTemporalFeatures(strokes);
     final dynamic_ = computeDynamicFeatures(strokes);
     final fluency  = computeFluencyScores(
-      spatial: spatial, temporal: temporal, dynamic_: dynamic_);
+      spatial: spatial,
+      temporal: temporal,
+      dynamic_: dynamic_,
+      strokeCount: strokes.length,
+    );
     final allFeatures = <String, double>{
       ...spatial, ...temporal, ...dynamic_, ...fluency,
     };

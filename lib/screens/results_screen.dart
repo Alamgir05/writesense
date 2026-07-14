@@ -91,6 +91,39 @@ class ResultsScreen extends StatelessWidget {
             ),
           ),
 
+          if (session.isLowConfidence)
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF5F5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFFEB2B2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        color: Color(0xFFC53030), size: 24),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        session.confidenceMessage ?? 'Low quality or insufficient handwriting detected — result may be unreliable.',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF9B2C2C),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // ── Export buttons ────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
@@ -288,6 +321,39 @@ class ResultsScreen extends StatelessWidget {
               ),
             ),
           ),
+
+          if (session.isLowConfidence)
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF5F5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFFEB2B2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        color: Color(0xFFC53030), size: 24),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        session.confidenceMessage ?? 'Low image quality or insufficient handwriting detected — result may be unreliable.',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF9B2C2C),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // ── Info banner explaining image limitations ────────────────────
           SliverToBoxAdapter(

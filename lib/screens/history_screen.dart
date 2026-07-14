@@ -142,7 +142,24 @@ class _TrendChart extends StatelessWidget {
     // Reverse so oldest is leftmost
     final ordered = sessions.reversed.toList();
 
-    final spots = ordered.asMap().entries.map((e) {
+    // Group/thin out sessions from the same rapid manual testing burst (within 5 minutes)
+    final thinned = <Session>[];
+    for (final s in ordered) {
+      if (thinned.isEmpty) {
+        thinned.add(s);
+      } else {
+        final last = thinned.last;
+        final diff = s.timestamp.difference(last.timestamp).abs();
+        if (diff.inMinutes < 5) {
+          // Replace with the latest session in the 5-minute burst
+          thinned[thinned.length - 1] = s;
+        } else {
+          thinned.add(s);
+        }
+      }
+    }
+
+    final spots = thinned.asMap().entries.map((e) {
       return FlSpot(
           e.key.toDouble(), e.value.irregularityIndex);
     }).toList();
@@ -198,12 +215,29 @@ class _TrendChart extends StatelessWidget {
                       interval: 1,
                       getTitlesWidget: (v, _) {
                         final i = v.toInt();
-                        if (i < 0 || i >= ordered.length) {
+                        if (i < 0 || i >= thinned.length) {
                           return const SizedBox.shrink();
                         }
-                        return Text(
-                          DateFormat('d/M').format(ordered[i].timestamp),
-                          style: const TextStyle(fontSize: 8),
+                        // Show at most 5 evenly-spaced labels
+                        final total = thinned.length;
+                        final showLabel = total <= 5 ||
+                            i == 0 ||
+                            i == total - 1 ||
+                            (total > 2 && i == (total / 2).floor()) ||
+                            (total > 4 && (i == (total / 4).floor() || i == (3 * total / 4).floor()));
+                        if (!showLabel) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            DateFormat('d MMM').format(thinned[i].timestamp),
+                            style: GoogleFonts.inter(
+                              fontSize: 8,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF8C8C8A),
+                            ),
+                          ),
                         );
                       },
                     ),

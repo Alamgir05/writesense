@@ -7,10 +7,14 @@ import 'package:image/image.dart' as img;
 class ImageAnalysisResult {
   final Map<String, double> features;
   final double staticHandwritingScore;
+  final bool isLowConfidence;
+  final String? confidenceMessage;
 
   const ImageAnalysisResult({
     required this.features,
     required this.staticHandwritingScore,
+    this.isLowConfidence = false,
+    this.confidenceMessage,
   });
 }
 
@@ -148,6 +152,29 @@ class ImageProcessingService {
         return _emptyResult();
       }
 
+      // Quality Gate: Check for minimum components and ink density
+      final double localInkDensity = totalInkPixels / (w * h);
+      if (components.length < 30 || localInkDensity < 0.025) {
+        return ImageAnalysisResult(
+          features: {
+            'average_stroke_width': 0.0,
+            'stroke_width_variance': 0.0,
+            'ink_density': _safe(localInkDensity),
+            'average_slant_angle': 0.0,
+            'slant_angle_variance': 0.0,
+            'line_spacing': 0.0,
+            'line_spacing_variance': 0.0,
+            'word_spacing': 0.0,
+            'word_spacing_variance': 0.0,
+            'baseline_deviation': 0.0,
+            'is_low_confidence': 1.0,
+          },
+          staticHandwritingScore: 0.0,
+          isLowConfidence: true,
+          confidenceMessage: 'Low image quality or insufficient handwriting detected — result may be unreliable',
+        );
+      }
+
       // 7. Distance Transform (2-pass Manhattan Distance) to estimate stroke width
       final dist = List.generate(h, (_) => Float32List(w));
       const maxDist = 999999.0;
@@ -261,7 +288,7 @@ class ImageProcessingService {
 
       // Smooth vertical projection profile
       final smoothedYProj = List<double>.filled(h, 0.0);
-      const win = 7;
+      const win = 20; // Increased window size for better line smoothing
       for (int y = 0; y < h; y++) {
         double sum = 0.0;
         int count = 0;
@@ -276,14 +303,36 @@ class ImageProcessingService {
       }
 
       final double meanSmoothedY = smoothedYProj.reduce((a, b) => a + b) / h;
+      
+      // Find candidate peaks
       final List<int> yPeaks = [];
+      final List<MapEntry<int, double>> candidates = [];
       for (int y = 1; y < h - 1; y++) {
         if (smoothedYProj[y] > smoothedYProj[y - 1] &&
             smoothedYProj[y] > smoothedYProj[y + 1] &&
-            smoothedYProj[y] > meanSmoothedY * 0.5) {
+            smoothedYProj[y] > meanSmoothedY * 0.3) {
+          candidates.add(MapEntry(y, smoothedYProj[y]));
+        }
+      }
+      // Sort candidates by vertical projection value in descending order
+      candidates.sort((a, b) => b.value.compareTo(a.value));
+      
+      // Select peaks with non-maximum suppression (distance threshold)
+      const double minPeakDist = 35.0; // minimum vertical distance between lines of text
+      for (final cand in candidates) {
+        final y = cand.key;
+        bool tooClose = false;
+        for (final peak in yPeaks) {
+          if ((y - peak).abs() < minPeakDist) {
+            tooClose = true;
+            break;
+          }
+        }
+        if (!tooClose) {
           yPeaks.add(y);
         }
       }
+      yPeaks.sort();
 
       final List<double> lineGaps = [];
       for (int i = 1; i < yPeaks.length; i++) {
@@ -329,49 +378,79 @@ class ImageProcessingService {
       final wordSpacingMean = wordStats['mean']!;
       final wordSpacingVar = wordStats['variance']!;
 
-      // 13. Feature Extraction: Baseline Deviation
+      // 13. Feature Extraction: Baseline Deviation (computed per text line)
       double baselineDev = 0.0;
       if (boundsList.length >= 2) {
-        double sumX = 0.0;
-        double sumY = 0.0;
-        for (final b in boundsList) {
-          final cx = (b.minX + b.maxX) / 2.0;
-          sumX += cx;
-          sumY += b.maxY;
+        // Group components by closest yPeak
+        final Map<int, List<_ComponentBounds>> groups = {};
+        if (yPeaks.isEmpty) {
+          groups[0] = boundsList;
+        } else {
+          for (final b in boundsList) {
+            final cy = (b.minY + b.maxY) / 2.0;
+            int closestPeak = yPeaks.first;
+            double minDist = (cy - closestPeak).abs();
+            for (final peak in yPeaks) {
+              final dist = (cy - peak).abs();
+              if (dist < minDist) {
+                minDist = dist;
+                closestPeak = peak;
+              }
+            }
+            groups.putIfAbsent(closestPeak, () => []).add(b);
+          }
         }
-        final meanX = sumX / boundsList.length;
-        final meanY = sumY / boundsList.length;
 
-        double num = 0.0;
-        double den = 0.0;
-        for (final b in boundsList) {
-          final cx = (b.minX + b.maxX) / 2.0;
-          final dx = cx - meanX;
-          final dy = b.maxY - meanY;
-          num += dx * dy;
-          den += dx * dx;
-        }
+        // Calculate baseline deviation for each group/line
+        final List<double> lineDeviations = [];
+        groups.forEach((peak, group) {
+          if (group.length < 2) return;
+          double sumX = 0.0;
+          double sumY = 0.0;
+          for (final b in group) {
+            final cx = (b.minX + b.maxX) / 2.0;
+            sumX += cx;
+            sumY += b.maxY.toDouble();
+          }
+          final meanX = sumX / group.length;
+          final meanY = sumY / group.length;
 
-        final double slope = (den != 0.0) ? (num / den) : 0.0;
-        final double intercept = meanY - slope * meanX;
+          double num = 0.0;
+          double den = 0.0;
+          for (final b in group) {
+            final cx = (b.minX + b.maxX) / 2.0;
+            final dx = cx - meanX;
+            final dy = b.maxY.toDouble() - meanY;
+            num += dx * dy;
+            den += dx * dx;
+          }
 
-        double sumSqErr = 0.0;
-        for (final b in boundsList) {
-          final cx = (b.minX + b.maxX) / 2.0;
-          final expectedY = slope * cx + intercept;
-          final err = b.maxY - expectedY;
-          sumSqErr += err * err;
-        }
-        baselineDev = sqrt(sumSqErr / boundsList.length);
+          final double slope = (den != 0.0) ? (num / den) : 0.0;
+          final double intercept = meanY - slope * meanX;
+
+          double sumSqErr = 0.0;
+          for (final b in group) {
+            final cx = (b.minX + b.maxX) / 2.0;
+            final expectedY = slope * cx + intercept;
+            final err = b.maxY.toDouble() - expectedY;
+            sumSqErr += err * err;
+          }
+          final dev = sqrt(sumSqErr / group.length);
+          lineDeviations.add(dev);
+        });
+
+        baselineDev = lineDeviations.isEmpty
+            ? 0.0
+            : lineDeviations.reduce((a, b) => a + b) / lineDeviations.length;
       }
 
       // 14. Weighted static irregularity score
       // Normalize values to [0, 1] based on reasonable upper limits.
-      final nBaselineDev = (baselineDev / 40.0).clamp(0.0, 1.0);
-      final nStrokeWidthVar = (strokeWidthVar / 5.0).clamp(0.0, 1.0);
-      final nSlantVar = (slantVar / 45.0).clamp(0.0, 1.0);
-      final nLineSpacingVar = (lineSpacingVar / 20.0).clamp(0.0, 1.0);
-      final nWordSpacingVar = (wordSpacingVar / 30.0).clamp(0.0, 1.0);
+      final nBaselineDev = (baselineDev / 60.0).clamp(0.0, 1.0);
+      final nStrokeWidthVar = (strokeWidthVar / 10.0).clamp(0.0, 1.0);
+      final nSlantVar = (slantVar / 2000.0).clamp(0.0, 1.0);
+      final nLineSpacingVar = (lineSpacingVar / 1000.0).clamp(0.0, 1.0);
+      final nWordSpacingVar = (wordSpacingVar / 40000.0).clamp(0.0, 1.0);
 
       // Placeholder weights adding up to 1.0
       const wBaselineDev = 0.30;
