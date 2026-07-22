@@ -8,6 +8,7 @@ import '../providers/history_provider.dart';
 import '../widgets/session_tile.dart';
 import '../widgets/styled_progress_indicator.dart';
 import 'results_screen.dart';
+import 'compare_screen.dart';
 
 Route _createFadeSlideRoute(Widget screen) {
   return PageRouteBuilder(
@@ -32,11 +33,64 @@ Route _createFadeSlideRoute(Widget screen) {
   );
 }
 
-class HistoryScreen extends ConsumerWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _selectionMode = !_selectionMode;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSession(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _openComparison(List<Session> allSessions) {
+    final selected = allSessions.where((s) => _selectedIds.contains(s.id)).toList();
+    if (selected.length < 2) return;
+
+    // Mixed-type check in history screen — show a snackbar before navigating
+    // (CompareScreen also blocks, but this gives earlier feedback)
+    final allTablet = selected.every((s) => s.isTablet);
+    final allImage = selected.every((s) => s.isImage);
+    if (!allTablet && !allImage) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Cannot compare tablet and image sessions — they use different '
+            'scales (Kinematic Irregularity Index vs Static Handwriting Score).',
+            style: GoogleFonts.inter(fontSize: 13),
+          ),
+          backgroundColor: const Color(0xFF1A3C5E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      // Still navigate to show the block screen for full context
+    }
+
+    Navigator.push(context, _createFadeSlideRoute(CompareScreen(sessions: selected)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final historyAsync = ref.watch(historyProvider);
 
     return Scaffold(
@@ -50,25 +104,77 @@ class HistoryScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: _selectionMode
+                        ? _toggleSelectionMode  // exit selection mode
+                        : () => Navigator.pop(context),
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1A3C5E).withValues(alpha: 0.08),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: Color(0xFF1A3C5E), size: 16),
+                      child: Icon(
+                        _selectionMode ? Icons.close : Icons.arrow_back_ios_new_rounded,
+                        color: const Color(0xFF1A3C5E),
+                        size: 16,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Text(
-                    'Session History',
-                    style: GoogleFonts.fraunces(
-                      color: const Color(0xFF1A1A18),
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectionMode ? 'Select Sessions' : 'Session History',
+                          style: GoogleFonts.fraunces(
+                            color: const Color(0xFF1A1A18),
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (_selectionMode)
+                          Text(
+                            _selectedIds.isEmpty
+                                ? 'Tap sessions to select'
+                                : '${_selectedIds.length} selected',
+                            style: GoogleFonts.inter(
+                                fontSize: 12, color: const Color(0xFF1A3C5E)),
+                          ),
+                      ],
                     ),
+                  ),
+                  // ── Compare toggle icon ──────────────────────────────
+                  historyAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (e, _) => const SizedBox.shrink(),
+                    data: (sessions) => sessions.length >= 2
+                        ? Tooltip(
+                            message: _selectionMode
+                                ? 'Exit selection mode'
+                                : 'Compare sessions',
+                            child: GestureDetector(
+                              onTap: _toggleSelectionMode,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: _selectionMode
+                                      ? const Color(0xFF1A3C5E)
+                                      : const Color(0xFF1A3C5E)
+                                            .withValues(alpha: 0.08),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.compare_arrows_rounded,
+                                  color: _selectionMode
+                                      ? Colors.white
+                                      : const Color(0xFF1A3C5E),
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
                 ],
               ),
@@ -84,19 +190,51 @@ class HistoryScreen extends ConsumerWidget {
                   }
                   return Column(
                     children: [
-                      // ── Trend chart ─────────────────────────────────────────
-                      if (sessions.length >= 2)
+                      // ── Trend chart (hidden in selection mode) ───────────
+                      if (sessions.length >= 2 && !_selectionMode)
                         _TrendChart(sessions: sessions),
-                      // ── Session list ─────────────────────────────────────────
+                      // ── Selection mode hint banner ────────────────────────
+                      if (_selectionMode)
+                        Container(
+                          margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1A3C5E).withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF1A3C5E).withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.info_outline_rounded,
+                                  color: Color(0xFF1A3C5E), size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Select 2 or more sessions of the same type (all tablet or all image) to compare.',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: const Color(0xFF1A3C5E)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      // ── Session list ─────────────────────────────────────
                       Expanded(
                         child: ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 24),
+                          padding: const EdgeInsets.only(top: 8, bottom: 80),
                           itemCount: sessions.length,
                           itemBuilder: (context, i) {
                             final session = sessions[i];
+                            final isSelected = _selectedIds.contains(session.id);
                             return TweenAnimationBuilder<double>(
                               tween: Tween(begin: 0.0, end: 1.0),
-                              duration: Duration(milliseconds: 300 + (i * 40).clamp(0, 300)),
+                              duration: Duration(
+                                  milliseconds:
+                                      300 + (i * 40).clamp(0, 300)),
                               curve: Curves.easeOutCubic,
                               builder: (context, val, child) {
                                 return Transform.translate(
@@ -108,11 +246,17 @@ class HistoryScreen extends ConsumerWidget {
                                 session: session,
                                 onTap: () => Navigator.push(
                                   context,
-                                  _createFadeSlideRoute(ResultsScreen(session: session)),
+                                  _createFadeSlideRoute(
+                                      ResultsScreen(session: session)),
                                 ),
                                 onDelete: () => ref
                                     .read(firestoreServiceProvider)
                                     .deleteSession(session.id),
+                                // Selection mode props (null = normal mode)
+                                isSelected: _selectionMode ? isSelected : null,
+                                onToggleSelect: _selectionMode
+                                    ? () => _toggleSession(session.id)
+                                    : null,
                               ),
                             );
                           },
@@ -126,6 +270,25 @@ class HistoryScreen extends ConsumerWidget {
           ],
         ),
       ),
+      // ── Compare FAB — only shown when 2+ sessions selected ───────────────
+      floatingActionButton: _selectionMode && _selectedIds.length >= 2
+          ? historyAsync.whenOrNull(
+              data: (sessions) => FloatingActionButton.extended(
+                onPressed: () => _openComparison(sessions),
+                backgroundColor: const Color(0xFF1A3C5E),
+                icon: const Icon(Icons.compare_arrows_rounded,
+                    color: Colors.white),
+                label: Text(
+                  'Compare ${_selectedIds.length}',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
